@@ -1,29 +1,70 @@
 package handlers
 
 import (
-    "github.com/gin-gonic/gin"
-    "golang.org/x/crypto/bcrypt"
-    "gorm.io/gorm"
     "net/http"
+    "github.com/gin-gonic/gin"
+    "github.com/bharharya/openstack-compute-service/database"
+    "github.com/bharharya/openstack-compute-service/middleware"
+    "golang.org/x/crypto/bcrypt"
 )
 
-type User struct {
-    gorm.Model
-    Username string `json:"username" gorm:"unique"`
-    Password string `json:"-"`
-    Credits  int    `json:"credits"`
-}
-
+// RegisterUser handles user registration
 func RegisterUser(c *gin.Context) {
-    var input User
-    if err := c.ShouldBindJSON(&input); err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+    var user database.User
+    if err := c.ShouldBindJSON(&user); err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
         return
     }
 
-    hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
-    user := User{Username: input.Username, Password: string(hashedPassword), Credits: 100}
+    // Hash password before storing
+    hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+    if err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
+        return
+    }
+    user.Password = string(hashedPassword)
 
-    database.DB.Create(&user)
-    c.JSON(http.StatusCreated, gin.H{"message": "User registered successfully", "credits": user.Credits})
+    // Assign initial credits
+    user.Credits = 100 
+
+    if err := database.DB.Create(&user).Error; err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "User registration failed"})
+        return
+    }
+
+    c.JSON(http.StatusCreated, gin.H{"message": "User registered successfully"})
+}
+
+// Login handles user authentication
+func Login(c *gin.Context) {
+    var req struct {
+        Username string `json:"username"`
+        Password string `json:"password"`
+    }
+
+    if err := c.ShouldBindJSON(&req); err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+        return
+    }
+
+    var user database.User
+    if err := database.DB.Where("username = ?", req.Username).First(&user).Error; err != nil {
+        c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
+        return
+    }
+
+    // Verify password
+    if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
+        c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
+        return
+    }
+
+    // Generate JWT token
+    token, err := middleware.GenerateJWT(user.Username)
+    if err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
+        return
+    }
+
+    c.JSON(http.StatusOK, gin.H{"token": token})
 }

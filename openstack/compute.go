@@ -1,9 +1,11 @@
 package openstack
 
 import (
-    "github.com/gophercloud/gophercloud"
-    "github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
-    "log"
+	"log"
+
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack"
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
 )
 
 func CreateInstance(provider *gophercloud.ProviderClient, name string, flavorID string, imageID string, networkID string) (*servers.Server, error) {

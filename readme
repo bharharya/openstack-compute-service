@@ -1,0 +1,146 @@
+# OpenStack Compute Service Wrapper
+
+## Overview
+This project is a wrapper around OpenStack's Compute Service (Nova) to provide functionality similar to AWS EC2. It enables user registration, authentication, resource tracking, usage-based credit deduction, data isolation, and cleanup facilitation using OpenStack APIs.
+
+### **Tech Stack**
+- **Programming Language**: Go
+- **Framework**: Gin (for API development)
+- **SDK**: Gophercloud (for OpenStack integration)
+- **Database**: PostgreSQL (for storing users, instances, and credits)
+- **Authentication**: JWT (JSON Web Tokens)
+
+## **Project Structure**
+```bash
+📂 openstack-compute-service
+│── main.go          # Entry point of the application
+│── logger.go        # Centralized logging functionality
+│
+├── 📂 routes
+│   ├── router.go    # API route definitions
+│
+├── 📂 handlers
+│   ├── auth.go      # User authentication (Login & Register)
+│   ├── compute.go   # Instance creation & management
+│
+├── 📂 middleware
+│   ├── jwt.go       # JWT authentication middleware
+│
+├── 📂 database
+│   ├── db.go        # Initializes database connection
+│   ├── models.go    # Struct definitions for User, Instance, etc.
+│
+├── 📂 config
+│   ├── config.go    # Configuration settings (DB, OpenStack credentials)
+```
+
+## **Flow Diagram**
+
+```mermaid
+graph TD;
+  A[User Registers/Login] -->|JWT Token| B[Compute Service API];
+  B -->|Create Instance| C[OpenStack Nova API];
+  C -->|Instance Created| D[Resource Tracking];
+  D -->|Deduct Credits| E[Usage Monitoring];
+  E -->|Shutoff? No Deduction| F[Instance Cleanup];
+  F -->|Remove Resources| G[Update Credit Balance];
+  G -->|User Views Usage| H[API Response];
+```
+
+## **Endpoints**
+### **1. Authentication APIs**
+- **Register User**
+  ```http
+  POST /register
+  ```
+  **Request Body:**
+  ```json
+  {
+    "username": "user1",
+    "password": "pass123"
+  }
+  ```
+
+- **Login**
+  ```http
+  POST /login
+  ```
+  **Response:**
+  ```json
+  {
+    "token": "eyJhbGciOiJI..."
+  }
+  ```
+
+### **2. Compute Service APIs**
+- **Create Instance**
+  ```http
+  POST /compute/create
+  ```
+  **Response:**
+  ```json
+  {
+    "instance_id": "abc123",
+    "status": "active"
+  }
+  ```
+
+- **Delete Instance**
+  ```http
+  DELETE /compute/delete/{instance_id}
+  ```
+
+## **Implementation Details**
+### **Phase 1 - Core Development**
+#### **Part 1: User Management**
+- Implement user registration and authentication (JWT-based)
+- Store credit information for each user
+
+#### **Part 2: Compute Service Integration**
+- Use OpenStack Nova APIs to create and manage instances
+- Track resources per user
+- Implement instance termination functionality
+
+#### **Part 3: Usage Tracking & Credit System**
+- Allocate credits per instance flavor
+- Deduct credits based on usage (except for shutoff instances)
+- Implement periodic cleanup for terminated instances
+
+## **Setup Instructions**
+### **1. Clone the Repository**
+```sh
+git clone https://github.com/bharharya/openstack-compute-service.git
+cd openstack-compute-service
+```
+
+### **2. Install Dependencies**
+```sh
+go mod tidy
+```
+
+### **3. Setup Environment Variables**
+Create a `.env` file and set your OpenStack credentials:
+```ini
+DB_HOST=localhost
+DB_USER=postgres
+DB_PASS=password
+OS_AUTH_URL=http://openstack:5000/v3
+OS_USERNAME=admin
+OS_PASSWORD=admin_pass
+```
+
+### **4. Run the Application**
+```sh
+go run main.go
+```
+
+### **5. Test the API**
+Use Postman or Curl to test the endpoints.
+```sh
+curl -X POST http://localhost:8080/register -H "Content-Type: application/json" -d '{"username":"testuser","password":"test123"}'
+```
+
+## **Expected Outcome**
+- A fully functional wrapper for OpenStack Compute Service (like AWS EC2)
+- A credit-based system ensuring fair resource allocation per user
+
