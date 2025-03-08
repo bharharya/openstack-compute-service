@@ -1,29 +1,23 @@
 package database
 
-import (
-    "gorm.io/gorm"
-)
+import "time"
 
-// User model
+// User represents a registered user in the system
 type User struct {
-    gorm.Model
-    Username string `json:"username" gorm:"unique"`
-    Password string `json:"-"`
-    Credits  int    `json:"credits"`
+	ID        int       `json:"id"`
+	Username  string    `json:"username"`
+	Password  string    `json:"-"` // Omit password in JSON responses
+	Credits   int       `json:"credits"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
-// Instance model (maps to OpenStack instances)
+// Instance represents a virtual machine instance
 type Instance struct {
-    gorm.Model
-    UserID   uint   `json:"user_id"`
-    Name     string `json:"name"`
-    FlavorID string `json:"flavor_id"`
-    ImageID  string `json:"image_id"`
-    NetworkID string `json:"network_id"`
-    Status   string `json:"status"` // Active, Shutoff, etc.
-}
-
-// Migrate models
-func MigrateDB() {
-    DB.AutoMigrate(&User{}, &Instance{})
+	ID         string    `json:"id"`
+	UserID     int       `json:"user_id"`
+	Name       string    `json:"name"`
+	Flavor     string    `json:"flavor"`
+	Status     string    `json:"status"`
+	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
 }
