@@ -1,23 +1,21 @@
 package database
 
-import "time"
+import "gorm.io/gorm"
 
 // User represents a registered user in the system
 type User struct {
-	ID        int       `json:"id"`
-	Username  string    `json:"username"`
-	Password  string    `json:"-"` // Omit password in JSON responses
-	Credits   int       `json:"credits"`
-	CreatedAt time.Time `json:"created_at"`
+	gorm.Model
+	Username string `gorm:"unique;not null"`
+	Email    string `gorm:"unique;not null"`
+	Password string `gorm:"not null"`
+	Credits  int    `gorm:"default:100"` // Initial credits for new users
 }
 
 // Instance represents a virtual machine instance
 type Instance struct {
-	ID         string    `json:"id"`
-	UserID     int       `json:"user_id"`
-	Name       string    `json:"name"`
-	Flavor     string    `json:"flavor"`
-	Status     string    `json:"status"`
-	CreatedAt  time.Time `json:"created_at"`
-	UpdatedAt  time.Time `json:"updated_at"`
+	gorm.Model
+	UserID     uint   `gorm:"not null"` // Foreign key to User
+	Name       string `gorm:"not null"`
+	InstanceID string `gorm:"unique;not null"`
+	Status     string `gorm:"default:'pending'"`
 }

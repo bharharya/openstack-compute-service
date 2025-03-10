@@ -1,21 +1,29 @@
 package utils
 
 import (
-    "log"
-    "os"
+	"log"
+	"os"
 )
 
 // Logger instance
-var Logger = log.New(os.Stdout, "[OpenStack-Service] ", log.Ldate|log.Ltime|log.Lshortfile)
+var Logger *log.Logger
 
-// LogError logs errors with a specific prefix
-func LogError(err error) {
-    if err != nil {
-        Logger.Println("ERROR:", err)
-    }
+// InitLogger initializes the logging system
+func InitLogger() {
+	logFile, err := os.OpenFile("app.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+	if err != nil {
+		log.Fatalf("Failed to open log file: %v", err)
+	}
+
+	Logger = log.New(logFile, "LOG: ", log.Ldate|log.Ltime|log.Lshortfile)
 }
 
-// LogInfo logs general information
-func LogInfo(msg string) {
-    Logger.Println("INFO:", msg)
+// Info logs informational messages
+func Info(msg string) {
+	Logger.Println("INFO:", msg)
+}
+
+// Error logs error messages
+func Error(err error) {
+	Logger.Println("ERROR:", err)
 }

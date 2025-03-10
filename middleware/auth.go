@@ -1,66 +1,46 @@
 package middleware
 
 import (
-	"fmt"
+	"context"
+	"errors"
 	"net/http"
-	"os"
 	"strings"
-	"time"
 
-	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v4"
+	"github.com/bharharya/openstack-compute-service/utils"
 )
 
-// JWTSecretKey is used for signing tokens
-var JWTSecretKey = []byte(os.Getenv("JWT_SECRET"))
-
-// Claims structure for JWT payload
-type Claims struct {
-	Username string `json:"username"`
-	jwt.RegisteredClaims
-}
-
-// GenerateToken generates a JWT for a user
-func GenerateToken(username string) (string, error) {
-	expirationTime := time.Now().Add(24 * time.Hour) // Token valid for 24 hours
-
-	claims := &Claims{
-		Username: username,
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(expirationTime),
-		},
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(JWTSecretKey)
-}
-
-// Authenticate validates the JWT token
-func Authenticate() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		authHeader := c.GetHeader("Authorization")
+// AuthMiddleware validates JWT tokens in incoming requests
+func AuthMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authHeader := r.Header.Get("Authorization")
 		if authHeader == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header missing"})
-			c.Abort()
+			http.Error(w, "Authorization header missing", http.StatusUnauthorized)
 			return
 		}
 
-		// Extract token from "Bearer <token>"
 		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
-		claims := &Claims{}
-
-		token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
-			return JWTSecretKey, nil
-		})
-
-		if err != nil || !token.Valid {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
-			c.Abort()
+		if tokenString == authHeader { // No "Bearer " prefix
+			http.Error(w, "Invalid token format", http.StatusUnauthorized)
 			return
 		}
 
-		// Store username in context for use in handlers
-		c.Set("username", claims.Username)
-		c.Next()
+		claims, err := utils.ValidateToken(tokenString)
+		if err != nil {
+			http.Error(w, "Invalid token", http.StatusUnauthorized)
+			return
+		}
+
+		// Store user ID in request context
+		ctx := context.WithValue(r.Context(), "userID", claims.UserID)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+// GetUserIDFromContext extracts userID from request context
+func GetUserIDFromContext(r *http.Request) (uint, error) {
+	userID, ok := r.Context().Value("userID").(float64) // JWT stores numbers as float64
+	if !ok {
+		return 0, errors.New("userID not found in context")
 	}
+	return uint(userID), nil
 }

@@ -1,37 +1,29 @@
 package database
 
 import (
-	"database/sql"
 	"fmt"
 	"log"
 	"os"
 
-	_ "github.com/lib/pq" // PostgreSQL driver
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
-var DB *sql.DB
+var DB *gorm.DB
 
-// InitDB initializes the database connection
-func InitDB() {
-	dbUser := os.Getenv("DB_USER")
-	dbPassword := os.Getenv("DB_PASSWORD")
-	dbName := os.Getenv("DB_NAME")
-	dbHost := os.Getenv("DB_HOST")
-	dbPort := os.Getenv("DB_PORT")
-
-	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-		dbHost, dbPort, dbUser, dbPassword, dbName)
+// InitDB initializes the database connection and returns an error if it fails
+func InitDB() error {
+	dsn := os.Getenv("DATABASE_URL")
+	if dsn == "" {
+		return fmt.Errorf("DATABASE_URL environment variable not set")
+	}
 
 	var err error
-	DB, err = sql.Open("postgres", dsn)
+	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		log.Fatalf("Error opening database: %v", err)
+		return fmt.Errorf("failed to connect to database: %w", err)
 	}
 
-	// Verify connection
-	if err = DB.Ping(); err != nil {
-		log.Fatalf("Error connecting to database: %v", err)
-	}
-
-	log.Println("Connected to the database successfully!")
+	log.Println("Database connected successfully")
+	return nil
 }
