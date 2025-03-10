@@ -1,0 +1,50 @@
+version: "3.8"
+
+services:
+  app:
+    container_name: openstack-compute-service
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - DATABASE_URL=postgres://postgres:password@db:5432/openstackdb?sslmode=disable
+      - OPENSTACK_AUTH_URL=http://openstack:5000/v3
+      - OPENSTACK_USERNAME=admin
+      - OPENSTACK_PASSWORD=secret
+      - OPENSTACK_PROJECT_NAME=admin
+      - OPENSTACK_DOMAIN_NAME=default
+    depends_on:
+      - db
+    networks:
+      - app_network
+
+  db:
+    image: postgres:14
+    container_name: postgres-db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: openstackdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app_network
+
+  openstack:
+    image: openstack-kolla
+    container_name: openstack-mock
+    restart: always
+    ports:
+      - "5000:5000"
+    networks:
+      - app_network
+
+networks:
+  app_network:
+    driver: bridge
+
+volumes:
+  postgres_data:

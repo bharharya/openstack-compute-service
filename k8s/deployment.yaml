@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openstack-compute-service
+  labels:
+    app: openstack-compute-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: openstack-compute-service
+  template:
+    metadata:
+      labels:
+        app: openstack-compute-service
+    spec:
+      containers:
+        - name: openstack-compute-service
+          image: your-dockerhub-username/openstack-compute-service:latest
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: openstack-config
+            - secretRef:
+                name: openstack-secrets
+          resources:
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+            requests:
+              memory: "256Mi"
+              cpu: "250m"

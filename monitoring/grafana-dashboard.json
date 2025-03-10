@@ -1,0 +1,35 @@
+{
+    "dashboard": {
+      "id": null,
+      "title": "OpenStack Compute Metrics",
+      "panels": [
+        {
+          "type": "graph",
+          "title": "Instance CPU Usage",
+          "targets": [
+            {
+              "expr": "rate(openstack_instance_cpu_usage[5m])",
+              "legendFormat": "{{ instance_id }}",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "type": "graph",
+          "title": "Instance Memory Usage",
+          "targets": [
+            {
+              "expr": "rate(openstack_instance_memory_usage[5m])",
+              "legendFormat": "{{ instance_id }}",
+              "refId": "B"
+            }
+          ]
+        }
+      ],
+      "time": {
+        "from": "now-1h",
+        "to": "now"
+      }
+    }
+  }
+  
